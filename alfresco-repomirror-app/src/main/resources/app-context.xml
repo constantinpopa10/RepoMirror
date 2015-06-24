@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context" xmlns:mongo="http://www.springframework.org/schema/data/mongo"
+    xsi:schemaLocation="http://www.springframework.org/schema/context
+          http://www.springframework.org/schema/context/spring-context-3.0.xsd
+          http://www.springframework.org/schema/data/mongo
+          http://www.springframework.org/schema/data/mongo/spring-mongo-1.0.xsd
+          http://www.springframework.org/schema/beans
+          http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <!--         -->
+    <!-- General -->
+    <!--         -->
+<!-- 
+    <context:property-placeholder location="classpath:app.properties"/>
+ -->
+
+    <!-- Application startup properties -->
+    <bean id="appPlaceholderConfigurer" class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer" >
+        <property name="ignoreUnresolvablePlaceholders" value="false"/>
+        <property name="locations">
+            <list>
+                <value>classpath*:app.properties</value>
+                <!-- 
+                <value>classpath*:config/startup/mongo.properties</value>
+                <value>classpath*:config/startup/*.properties</value>
+                 -->
+            </list>
+        </property>
+    </bean>
+
+    <!--  
+    <bean id="placeholderConfigurer" class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer" >
+        <property name="ignoreUnresolvablePlaceholders" value="false"/>
+    </bean>
+-->
+
+    <import resource="classpath:services-common-messaging-context.xml"/>
+    <import resource="classpath:camel-context.xml"/>
+
+    <!--           -->
+    <!-- Mongo     -->
+    <!--           -->
+
+    <bean id="mongoDbFactory" class="org.alfresco.service.common.mongo.MongoDbFactory">
+        <property name="mongoURI" value="${mongo.mongoURI}" />
+        <property name="dbName" value="${mongo.dbName}" />
+        <property name="enabled" value="${mongo.enabled}"/>
+    </bean>
+
+    <bean id="mongoDB" factory-bean="mongoDbFactory" factory-method="createInstance" />
+
+    <!--                        -->
+    <!-- User Data Service      -->
+    <!--                        -->
+    <bean id="userDataService" class="org.alfresco.repomirror.dao.MyUserDataServiceImpl">
+        <constructor-arg name="db" ref="mongoDB" />
+        <constructor-arg name="collection" value="${users.collectionName}" />
+    </bean>
+
+    <!--                        -->
+    <!-- Site Data Service      -->
+    <!--                        -->
+    <bean id="siteDataService" class="org.alfresco.bm.site.SiteDataServiceImpl">
+        <constructor-arg name="db" ref="mongoDB" />
+        <constructor-arg name="sites" value="${mirror.sites}" />
+        <constructor-arg name="siteMembers" value="${mirror.siteMembers}" />
+    </bean>
+
+    <bean id="nodesDataService" class="org.alfresco.repomirror.dao.mongo.MongoNodesDataService">
+        <constructor-arg name="db" ref="mongoDB" />
+        <constructor-arg name="collection" value="${nodes.collectionName}" />
+    </bean>
+
+    <bean id="populator" class="org.alfresco.repomirror.Populator">
+        <constructor-arg name="userDataService" ref="userDataService" />
+        <constructor-arg name="sitesDataService" ref="siteDataService" />
+        <constructor-arg name="nodesDataService" ref="nodesDataService" />
+        <constructor-arg name="maxChildrenPerFolder" value="${maxChildrenPerFolder}" />
+        <constructor-arg name="maxChildFolders" value="${maxChildFolders}" />
+        <constructor-arg name="alfrescoHost" value="${alfrescoHost}" />
+        <constructor-arg name="alfrescoPort" value="${alfrescoPort}" />
+        <constructor-arg name="maxNodes" value="${maxNodes}" />
+    </bean>
+
+    <bean id="restAPI" class="org.alfresco.repomirror.rest.RestAPI">
+        <constructor-arg name="populator" ref="populator" />
+    </bean>
+</beans>
