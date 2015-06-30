@@ -166,7 +166,7 @@ public class Populator
 		String folderNodeType = normalizeNodeType(folderType.getId());
 		if(!nodesDataService.nodeExists(folderNodeId))
 		{
-			System.out.println("Processing " + siteId + ", " + folderNodeId + ", " + folderNodePath);
+			logger.debug("Processing " + siteId + ", " + folderNodeId + ", " + folderNodePath);
         	nodesDataService.addNode(siteId, null, folderNodeId, folderNodePath, folderName, folderNodeType);
         	count++;
 		}
@@ -215,7 +215,7 @@ public class Populator
 		        	}
 					if(!nodesDataService.nodeExists(nodeId))
 					{
-						System.out.println("Processing " + siteId + ", " + nodeId + ", " + childNodePath);
+						logger.debug("Processing " + siteId + ", " + nodeId + ", " + childNodePath);
 			        	nodesDataService.addNode(siteId, null, nodeId, childNodePath, name, nodeType);
 			        	count++;
 					}

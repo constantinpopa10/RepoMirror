@@ -10,15 +10,21 @@ package org.alfresco.repomirror.dao.mongo;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.alfresco.bm.user.UserDataServiceImpl.Range;
 import org.alfresco.repomirror.dao.NodesDataService;
 import org.alfresco.repomirror.data.FileData;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.BasicDBObjectBuilder;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 import com.mongodb.WriteConcern;
@@ -30,6 +36,8 @@ import com.mongodb.WriteConcern;
  */
 public class MongoNodesDataService implements NodesDataService, InitializingBean
 {
+	private static Log logger = LogFactory.getLog(MongoNodesDataService.class);
+
 	public static String FIELD_USERNAME = "username";
 	public static String FIELD_RANDOMIZER = "randomizer";
 	public static String FIELD_SUBSCRIBER_ID = "subscriberId";
@@ -77,12 +85,64 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
         DBObject idxPath = BasicDBObjectBuilder
                 .start("path", 1)
                 .add("nodeType", 2)
-                .add("randomizer", 3)
+                .add("siteId", 3)
+                .add("randomizer", 4)
                 .get();
         DBObject optPath = BasicDBObjectBuilder
                 .start("name", "idxPath")
                 .get();
         collection.createIndex(idxPath, optPath);
+
+        DBObject idxNodeType = BasicDBObjectBuilder
+                .start("nodeType", 1)
+                .add("randomizer", 2)
+                .get();
+        DBObject optNodeType = BasicDBObjectBuilder
+                .start("name", "idxnodeType")
+                .get();
+        collection.createIndex(idxNodeType, optNodeType);
+    }
+
+    private Range getRandomizerRange(List<String> sites)
+    {
+    	QueryBuilder queryObjBuilder = QueryBuilder
+        		.start();
+        if(sites != null && sites.size() > 0)
+        {
+            queryObjBuilder.and("siteId").in(sites);
+        }
+        return getRandomizerRange(queryObjBuilder);
+    }
+
+    private Range getRandomizerRange()
+    {
+    	QueryBuilder queryObjBuilder = QueryBuilder
+        		.start();
+        return getRandomizerRange(queryObjBuilder);
+    }
+
+    private Range getRandomizerRange(QueryBuilder queryObjBuilder)
+    {
+        DBObject queryObj = queryObjBuilder.get();
+
+        DBObject fieldsObj = BasicDBObjectBuilder.start()
+                .add("randomizer", Boolean.TRUE)
+                .get();
+        
+        DBObject sortObj = BasicDBObjectBuilder.start()
+                .add("randomizer", -1)
+                .get();
+        
+        // Find max
+        DBObject resultObj = collection.findOne(queryObj, fieldsObj, sortObj);
+        int maxRandomizer = resultObj == null ? 0 : (Integer) resultObj.get("randomizer");
+        
+        // Find min
+        sortObj.put("randomizer", +1);
+        resultObj = collection.findOne(queryObj, fieldsObj, sortObj);
+        int minRandomizer = resultObj == null ? 0 : (Integer) resultObj.get("randomizer");
+
+        return new Range(minRandomizer, maxRandomizer);
     }
 
     private DBObject toDBObject(FileData fileData)
@@ -112,8 +172,20 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 		return fileData;
     }
 
+	private String normalizeNodeId(String nodeId)
+	{
+		int idx = nodeId.indexOf(";");
+		if(idx != -1)
+		{
+			nodeId = nodeId.substring(0, idx);
+		}
+		return nodeId;
+	}
+
+    @Override
     public boolean nodeExists(String nodeId)
     {
+		nodeId = normalizeNodeId(nodeId);
     	DBObject query = QueryBuilder
     			.start("nodeId").is(nodeId)
     			.get();
@@ -125,9 +197,11 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
     public void addNode(String siteId, String username, String nodeId, String nodePath,
             String name, String nodeType)
     {
+		nodeId = normalizeNodeId(nodeId);
+
 		if(nodeExists(nodeId))
 		{
-			System.err.println("Found dup nodeId " + nodeId + ", " + nodePath);
+			logger.warn("Found dup nodeId " + nodeId + ", " + nodePath);
 		}
 		else
 		{
@@ -140,6 +214,8 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 	@Override
     public void removeNode(String nodeId)
     {
+		nodeId = normalizeNodeId(nodeId);
+
     	DBObject query = QueryBuilder
     			.start("nodeId").is(nodeId)
     			.get();
@@ -149,6 +225,8 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 	@Override
     public void renameNode(String nodeId, String newName)
     {
+		nodeId = normalizeNodeId(nodeId);
+
     	DBObject query = QueryBuilder
     			.start("nodeId").is(nodeId)
     			.get();
@@ -165,41 +243,6 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
     {
 	    // TODO Auto-generated method stub
 	    
-    }
-
-    private Range getRandomizerRange(List<String> sites)
-    {
-    	QueryBuilder queryObjBuilder = QueryBuilder
-        		.start();
-        if(sites != null && sites.size() > 0)
-        {
-            queryObjBuilder.and("siteId").in(sites);
-        }
-        return getRandomizerRange(queryObjBuilder);
-    }
-
-    private Range getRandomizerRange(QueryBuilder queryObjBuilder)
-    {
-        DBObject queryObj = queryObjBuilder.get();
-
-        DBObject fieldsObj = BasicDBObjectBuilder.start()
-                .add("randomizer", Boolean.TRUE)
-                .get();
-        
-        DBObject sortObj = BasicDBObjectBuilder.start()
-                .add("randomizer", -1)
-                .get();
-        
-        // Find max
-        DBObject resultObj = collection.findOne(queryObj, fieldsObj, sortObj);
-        int maxRandomizer = resultObj == null ? 0 : (Integer) resultObj.get("randomizer");
-        
-        // Find min
-        sortObj.put("randomizer", +1);
-        resultObj = collection.findOne(queryObj, fieldsObj, sortObj);
-        int minRandomizer = resultObj == null ? 0 : (Integer) resultObj.get("randomizer");
-
-        return new Range(minRandomizer, maxRandomizer);
     }
 
     @Override
@@ -274,6 +317,8 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
     public void updateNode(String nodeId, Integer numChildren,
             Integer numSiblingsToProcess, Integer numChildrenToProcess)
     {
+		nodeId = normalizeNodeId(nodeId);
+
     	QueryBuilder queryObjBuilder = QueryBuilder
         		.start("nodeId").is(nodeId);
 		DBObject query = queryObjBuilder.get();
@@ -313,4 +358,45 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 		long count = collection.count(query);
 		return count;
     }
+
+	@Override
+	public Stream<String> randomSitesWithContent(int max)
+	{
+        Range range = getRandomizerRange();
+        int upper = range.getMax();
+        int lower = range.getMin();
+        int random = lower + (int) (Math.random() * (double) (upper - lower));
+
+    	Pattern regex = Pattern.compile("[^documentLibrary]$");
+
+        QueryBuilder builder = QueryBuilder
+        		.start("path").regex(regex)
+        		.and("nodeType").in(Arrays.asList("cm:content", "cm:folder"))
+        		.and("siteId").exists(true)
+        		.and("siteId").notEquals(null)
+        		.and(FIELD_RANDOMIZER).greaterThanEquals(Integer.valueOf(random));
+        DBObject queryObj = builder.get();
+
+        boolean ascending = true;
+
+        DBObject dbObject = collection.findOne(queryObj);
+        if(dbObject == null)
+        {
+        	ascending = false;
+            queryObj.put(FIELD_RANDOMIZER, new BasicDBObject("$lt", random));
+        }
+
+        DBObject orderBy = BasicDBObjectBuilder
+        		.start(FIELD_RANDOMIZER, (ascending ? 1 : -1))
+        		.get();
+
+    	DBCursor cur = collection.find(queryObj).sort(orderBy).limit(max);
+
+    	Stream<String> stream = StreamSupport.stream(cur.spliterator(), false)
+    		.onClose(() -> cur.close())  // need to close cursor;
+    		.filter(dbo -> dbo.get("siteId") != null)
+    		.map(dbo -> (String)dbo.get("siteId"));
+
+        return stream;
+	}
 }

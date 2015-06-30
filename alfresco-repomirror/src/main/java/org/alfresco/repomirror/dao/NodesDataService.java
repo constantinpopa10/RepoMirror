@@ -8,6 +8,7 @@
 package org.alfresco.repomirror.dao;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.alfresco.repomirror.data.FileData;
 
@@ -29,4 +30,5 @@ public interface NodesDataService
 	void updateNode(String nodeId, Integer numChildren, Integer numSiblingsToProcess, Integer numChildrenToProcess);
 	long countNodes(String siteId);
 	long countNodesUnderFolder(String path);
+	Stream<String> randomSitesWithContent(int max);
 }
