@@ -49,14 +49,14 @@ public class Populator
 	private OperationContext opContext;
 	private int maxChildrenPerFolder = -1;
 	private int maxChildFolders = -1;
-	private int maxNodes = 0;
+	private int maxInitialNodes = 0;
 
 	private final String alfrescoHost;
 	private final int alfrescoPort;
 
     public Populator(UserDataService userDataService,
             SiteDataService sitesDataService, NodesDataService nodesDataService, int maxChildrenPerFolder,
-            int maxChildFolders, String alfrescoHost, int alfrescoPort, int maxNodes)
+            int maxChildFolders, String alfrescoHost, int alfrescoPort, int maxInitialNodes)
     {
 	    super();
 	    this.userDataService = userDataService;
@@ -66,7 +66,7 @@ public class Populator
 	    this.maxChildrenPerFolder = maxChildrenPerFolder;
 	    this.alfrescoHost = alfrescoHost;
 	    this.alfrescoPort = alfrescoPort;
-	    this.maxNodes = maxNodes;
+	    this.maxInitialNodes = maxInitialNodes;
     }
 
 	private Session getCMISSession(String username, BindingType bindingType, String bindingUrl, String repositoryId)
@@ -228,9 +228,12 @@ public class Populator
 	        }
 		}
 
-		int numSiblingsToProcess = ((numChildren > maxChildrenPerFolder) ? numChildren - maxChildrenPerFolder : 0);
-		int numChildrenToProcess = ((numChildFolders > maxChildFolders) ? numChildFolders - maxChildFolders : 0);
-		nodesDataService.updateNode(folderNodeId, numChildren, numSiblingsToProcess, numChildrenToProcess);
+		int numSiblingsToProcess = (maxChildrenPerFolder < 0 ? 0 :
+			((numChildren > maxChildrenPerFolder) ? numChildren - maxChildrenPerFolder : 0));
+		int numChildrenToProcess = (maxChildFolders < 0 ? 0 :
+			((numChildFolders > maxChildFolders) ? numChildFolders - maxChildFolders : 0));
+		nodesDataService.updateNode(folderNodeId, numChildren, numChildFolders,
+				numSiblingsToProcess, numChildrenToProcess);
 
 		return count;
 	}
@@ -263,7 +266,7 @@ public class Populator
 		int maxItems = 100;
 
 		List<SiteData> sites = sitesDataService.getSites("default", DataCreationState.Created, skip, maxItems);
-		while(sites != null && sites.size() > 0 && count < maxNodes)
+		while(sites != null && sites.size() > 0 && count < maxInitialNodes)
 		{
 			for(SiteData siteData : sites)
 			{

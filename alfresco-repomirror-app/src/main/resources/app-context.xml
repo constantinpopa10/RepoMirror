@@ -80,7 +80,7 @@
         <constructor-arg name="maxChildFolders" value="${maxChildFolders}" />
         <constructor-arg name="alfrescoHost" value="${alfrescoHost}" />
         <constructor-arg name="alfrescoPort" value="${alfrescoPort}" />
-        <constructor-arg name="maxNodes" value="${maxNodes}" />
+        <constructor-arg name="maxInitialNodes" value="${maxInitialNodes}" />
     </bean>
 
     <bean id="restAPI" class="org.alfresco.repomirror.rest.RestAPI">

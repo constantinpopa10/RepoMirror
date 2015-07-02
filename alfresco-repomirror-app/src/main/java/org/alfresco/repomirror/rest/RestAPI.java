@@ -8,6 +8,11 @@ import javax.ws.rs.core.MediaType;
 
 import org.alfresco.repomirror.Populator;
 
+/**
+ * 
+ * @author sglover
+ *
+ */
 @Path("/v1")
 public class RestAPI
 {

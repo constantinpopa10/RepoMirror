@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.alfresco.repomirror.data.FileData;
+import org.alfresco.repomirror.data.PathInfo;
 
 /**
  * 
@@ -27,8 +28,10 @@ public interface NodesDataService
 	FileData randomFileInSite(String siteId);
 	FileData randomNodeUnderFolder(String path, List<String> nodeTypes);
 	String randomFolderUnderFolder(String path);
-	void updateNode(String nodeId, Integer numChildren, Integer numSiblingsToProcess, Integer numChildrenToProcess);
+	void updateNode(String nodeId, Integer numChildren, Integer numChildFolders,
+			Integer numSiblingsToProcess, Integer numChildrenToProcess);
 	long countNodes(String siteId);
 	long countNodesUnderFolder(String path);
-	Stream<String> randomSitesWithContent(int max);
+	Stream<PathInfo> randomPathsWithContent(int max);
+	Stream<PathInfo> randomPaths(int max);
 }

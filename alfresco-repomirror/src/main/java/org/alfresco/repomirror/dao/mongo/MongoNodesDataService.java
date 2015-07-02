@@ -16,6 +16,7 @@ import java.util.stream.StreamSupport;
 import org.alfresco.bm.user.UserDataServiceImpl.Range;
 import org.alfresco.repomirror.dao.NodesDataService;
 import org.alfresco.repomirror.data.FileData;
+import org.alfresco.repomirror.data.PathInfo;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -111,13 +112,6 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
         {
             queryObjBuilder.and("siteId").in(sites);
         }
-        return getRandomizerRange(queryObjBuilder);
-    }
-
-    private Range getRandomizerRange()
-    {
-    	QueryBuilder queryObjBuilder = QueryBuilder
-        		.start();
         return getRandomizerRange(queryObjBuilder);
     }
 
@@ -314,7 +308,7 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 	}
 
 	@Override
-    public void updateNode(String nodeId, Integer numChildren,
+    public void updateNode(String nodeId, Integer numChildren, Integer numChildFolders,
             Integer numSiblingsToProcess, Integer numChildrenToProcess)
     {
 		nodeId = normalizeNodeId(nodeId);
@@ -328,6 +322,7 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 					.add("numChildren", numChildren)
 					.add("numSiblingsToProcess", numSiblingsToProcess)
 					.add("numChildrenToProcess", numChildrenToProcess)
+					.add("numChildFolders", numChildFolders)
 				.pop()
 				.get();
 		collection.update(query, update, false, false);
@@ -358,16 +353,30 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 		long count = collection.count(query);
 		return count;
     }
+	
+	private PathInfo toPathInfo(DBObject dbObject)
+	{
+		String siteId = (String)dbObject.get("siteId");
+		String path = (String)dbObject.get("path");
+		Integer numChildren = (Integer)dbObject.get("numChildren");
+		Integer numChildFolders = (Integer)dbObject.get("numChildFolders");
+		return new PathInfo(siteId, path, numChildren, numChildFolders);
+	}
 
 	@Override
-	public Stream<String> randomSitesWithContent(int max)
+	public Stream<PathInfo> randomPathsWithContent(int max)
 	{
-        Range range = getRandomizerRange();
+    	Pattern regex = Pattern.compile("[^documentLibrary]$");
+
+        QueryBuilder rangeBuilder = QueryBuilder
+        		.start("path").regex(regex)
+        		.and("nodeType").in(Arrays.asList("cm:content", "cm:folder"))
+        		.and("siteId").exists(true)
+        		.and("siteId").notEquals(null);
+        Range range = getRandomizerRange(rangeBuilder);
         int upper = range.getMax();
         int lower = range.getMin();
         int random = lower + (int) (Math.random() * (double) (upper - lower));
-
-    	Pattern regex = Pattern.compile("[^documentLibrary]$");
 
         QueryBuilder builder = QueryBuilder
         		.start("path").regex(regex)
@@ -392,10 +401,52 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 
     	DBCursor cur = collection.find(queryObj).sort(orderBy).limit(max);
 
-    	Stream<String> stream = StreamSupport.stream(cur.spliterator(), false)
+    	Stream<PathInfo> stream = StreamSupport.stream(cur.spliterator(), false)
     		.onClose(() -> cur.close())  // need to close cursor;
-    		.filter(dbo -> dbo.get("siteId") != null)
-    		.map(dbo -> (String)dbo.get("siteId"));
+//    		.filter(dbo -> dbo.get("siteId") != null)
+    		.map(dbo -> toPathInfo(dbo));
+
+        return stream;
+	}
+
+	@Override
+	public Stream<PathInfo> randomPaths(int max)
+	{
+        QueryBuilder rangeBuilder = QueryBuilder
+        		.start("nodeType").in(Arrays.asList("cm:content", "cm:folder"))
+        		.and("siteId").exists(true)
+        		.and("siteId").notEquals(null);
+        Range range = getRandomizerRange(rangeBuilder);
+        int upper = range.getMax();
+        int lower = range.getMin();
+        int random = lower + (int) (Math.random() * (double) (upper - lower));
+
+        QueryBuilder builder = QueryBuilder
+        		.start("nodeType").in(Arrays.asList("cm:content", "cm:folder"))
+        		.and("siteId").exists(true)
+        		.and("siteId").notEquals(null)
+        		.and(FIELD_RANDOMIZER).greaterThanEquals(Integer.valueOf(random));
+        DBObject queryObj = builder.get();
+
+        boolean ascending = true;
+
+        DBObject dbObject = collection.findOne(queryObj);
+        if(dbObject == null)
+        {
+        	ascending = false;
+            queryObj.put(FIELD_RANDOMIZER, new BasicDBObject("$lt", random));
+        }
+
+        DBObject orderBy = BasicDBObjectBuilder
+        		.start(FIELD_RANDOMIZER, (ascending ? 1 : -1))
+        		.get();
+
+    	DBCursor cur = collection.find(queryObj).sort(orderBy).limit(max);
+
+    	Stream<PathInfo> stream = StreamSupport.stream(cur.spliterator(), false)
+    		.onClose(() -> cur.close())  // need to close cursor;
+//    		.filter(dbo -> dbo.get("siteId") != null)
+    		.map(dbo -> toPathInfo(dbo));
 
         return stream;
 	}
