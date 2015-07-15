@@ -28,6 +28,7 @@ public interface NodesDataService
 	FileData randomFileInSite(String siteId);
 	FileData randomNodeUnderFolder(String path, List<String> nodeTypes);
 	String randomFolderUnderFolder(String path);
+	PathInfo randomFolderInSite(String siteId);
 	void updateNode(String nodeId, Integer numChildren, Integer numChildFolders,
 			Integer numSiblingsToProcess, Integer numChildrenToProcess);
 	long countNodes(String siteId);

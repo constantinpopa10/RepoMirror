@@ -8,6 +8,7 @@
 package org.alfresco.repomirror.dao.mongo;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -364,6 +365,39 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 	}
 
 	@Override
+	public PathInfo randomFolderInSite(String siteId)
+	{
+    	Pattern regex = Pattern.compile("documentLibrary");
+
+        QueryBuilder rangeBuilder = QueryBuilder
+        		.start("path").regex(regex)
+        		.and("nodeType").in(Arrays.asList("cm:content", "cm:folder"))
+        		.and("siteId").is(siteId);
+        Range range = getRandomizerRange(rangeBuilder);
+        int upper = range.getMax();
+        int lower = range.getMin();
+        int random = lower + (int) (Math.random() * (double) (upper - lower));
+
+        QueryBuilder builder = QueryBuilder
+        		.start("path").regex(regex)
+        		.and("nodeType").in(Arrays.asList("cm:content", "cm:folder"))
+        		.and("siteId").is(siteId)
+        		.and(FIELD_RANDOMIZER).greaterThanEquals(Integer.valueOf(random));
+        DBObject queryObj = builder.get();
+
+        DBObject dbObject = collection.findOne(queryObj);
+        if(dbObject == null)
+        {
+            queryObj.put(FIELD_RANDOMIZER, new BasicDBObject("$lt", random));
+        }
+
+        dbObject = collection.findOne(queryObj);
+
+    	PathInfo pathInfo = toPathInfo(dbObject);
+        return pathInfo;
+	}
+
+	@Override
 	public Stream<PathInfo> randomPathsWithContent(int max)
 	{
     	Pattern regex = Pattern.compile("[^documentLibrary]$");
@@ -441,12 +475,18 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
         		.start(FIELD_RANDOMIZER, (ascending ? 1 : -1))
         		.get();
 
-    	DBCursor cur = collection.find(queryObj).sort(orderBy).limit(max);
-
-    	Stream<PathInfo> stream = StreamSupport.stream(cur.spliterator(), false)
-    		.onClose(() -> cur.close())  // need to close cursor;
-//    		.filter(dbo -> dbo.get("siteId") != null)
-    		.map(dbo -> toPathInfo(dbo));
+        Stream<PathInfo> stream = null;
+        if(max >= 0)
+        {
+        	DBCursor cur = collection.find(queryObj).sort(orderBy).limit(max);
+        	stream = StreamSupport.stream(cur.spliterator(), false)
+            		.onClose(() -> cur.close())  // need to close cursor;
+            		.map(dbo -> toPathInfo(dbo));
+        }
+        else
+        {
+        	stream = Collections.<PathInfo>emptyList().stream();
+        }
 
         return stream;
 	}

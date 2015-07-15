@@ -20,7 +20,7 @@
 
         <dependency.gytheio.version>0.3-SNAPSHOT</dependency.gytheio.version>
 
-        <tomcat.port>9081</tomcat.port>
+        <tomcat.port>9123</tomcat.port>
         <tomcat.ip>localhost</tomcat.ip>
         <tomcat.url>http://${bm.tomcat.ip}:${bm.tomcat.port}/manager/text</tomcat.url>
         <tomcat.server>dev-tomcat</tomcat.server>
