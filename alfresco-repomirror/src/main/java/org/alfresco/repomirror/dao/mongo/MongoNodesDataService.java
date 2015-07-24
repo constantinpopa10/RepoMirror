@@ -357,11 +357,18 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 	
 	private PathInfo toPathInfo(DBObject dbObject)
 	{
-		String siteId = (String)dbObject.get("siteId");
-		String path = (String)dbObject.get("path");
-		Integer numChildren = (Integer)dbObject.get("numChildren");
-		Integer numChildFolders = (Integer)dbObject.get("numChildFolders");
-		return new PathInfo(siteId, path, numChildren, numChildFolders);
+		PathInfo pathInfo = null;
+
+		if(dbObject != null)
+		{
+			String siteId = (String)dbObject.get("siteId");
+			String path = (String)dbObject.get("path");
+			Integer numChildren = (Integer)dbObject.get("numChildren");
+			Integer numChildFolders = (Integer)dbObject.get("numChildFolders");
+			pathInfo = new PathInfo(siteId, path, numChildren, numChildFolders);
+		}
+
+		return pathInfo;
 	}
 
 	@Override
@@ -438,7 +445,8 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
     	Stream<PathInfo> stream = StreamSupport.stream(cur.spliterator(), false)
     		.onClose(() -> cur.close())  // need to close cursor;
 //    		.filter(dbo -> dbo.get("siteId") != null)
-    		.map(dbo -> toPathInfo(dbo));
+    		.map(dbo -> toPathInfo(dbo))
+    		.filter(pi -> pi != null);
 
         return stream;
 	}
@@ -481,7 +489,8 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
         	DBCursor cur = collection.find(queryObj).sort(orderBy).limit(max);
         	stream = StreamSupport.stream(cur.spliterator(), false)
             		.onClose(() -> cur.close())  // need to close cursor;
-            		.map(dbo -> toPathInfo(dbo));
+            		.map(dbo -> toPathInfo(dbo))
+            		.filter(pi -> pi != null);
         }
         else
         {
