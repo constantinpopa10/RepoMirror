@@ -52,7 +52,8 @@ public class NodeEventListener
 		String nodePath = getNodePath(event);
 		String name = event.getName();
 		String nodeType = event.getNodeType();
-		filesService.addNode(siteId, username, nodeId, nodePath, name, nodeType);
+		List<List<String>> parentNodeIds = event.getParentNodeIds();
+		filesService.addNode(siteId, username, nodeId, nodePath, name, nodeType, parentNodeIds);
 	}
 
 	private void nodeRemoved(NodeRemovedEvent event)

@@ -20,6 +20,11 @@
     <dependencies>
         <dependency>
             <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <version>4.0.3.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
             <version>4.0.3.RELEASE</version>
         </dependency>
@@ -38,6 +43,7 @@
             <artifactId>alfresco-device-sync-events</artifactId>
             <version>1.2-SNAPSHOT</version>
         </dependency>
+        <!-- 
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-amqp</artifactId>
@@ -57,6 +63,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
+         -->
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-camel</artifactId>
@@ -114,18 +121,18 @@
             <artifactId>camel-jms</artifactId>
             <version>2.13.2</version>
             <exclusions>
-            	<exclusion>
-            		<artifactId>spring-context</artifactId>
-            		<groupId>org.springframework</groupId>
-            	</exclusion>
-            	<exclusion>
-            		<artifactId>spring-beans</artifactId>
-            		<groupId>org.springframework</groupId>
-            	</exclusion>
-            	<exclusion>
-            		<artifactId>spring-jms</artifactId>
-            		<groupId>org.springframework</groupId>
-            	</exclusion>
+                <exclusion>
+                    <artifactId>spring-context</artifactId>
+                    <groupId>org.springframework</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>spring-beans</artifactId>
+                    <groupId>org.springframework</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>spring-jms</artifactId>
+                    <groupId>org.springframework</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -181,6 +188,32 @@
             <version>3.0.1</version>
             <scope>provided</scope>
         </dependency>
+        <!-- 
+        <dependency>
+            <groupId>org.apache.tomcat.maven</groupId>
+            <artifactId>tomcat7-maven-plugin</artifactId>
+            <version>2.2</version>
+        </dependency>
+         -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.12</version>
+        </dependency>
+        <!-- 
+		<dependency>
+		    <groupId>org.apache.tomcat</groupId>
+		    <artifactId>tomcat-catalina</artifactId>
+		    <version>7.0.53</version>
+		    <scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.tomcat</groupId>
+		    <artifactId>tomcat-util</artifactId>
+		    <version>7.0.53</version>
+		    <scope>provided</scope>
+		</dependency>
+		 -->
     </dependencies>
 
     <!-- Uncomment this for your project <scm> <connection>scm:svn:SomeURL></connection> </scm> -->
@@ -208,13 +241,14 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.0</version>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.tomcat.maven</groupId>
                 <artifactId>tomcat7-maven-plugin</artifactId>
+                <version>2.0</version>
                 <configuration>
                     <url>${tomcat.url}</url>
                     <!-- Add the following server to your security settings -->

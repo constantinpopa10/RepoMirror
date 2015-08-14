@@ -150,10 +150,12 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
     			.add("name", fileData.getName())
     			.add("nodeType", fileData.getNodeType())
     			.add("randomizer", fileData.getRandomizer())
+    			.add("parentNodeIds", fileData.getParentNodeIds())
     			.get();
     	return dbObject;
     }
 
+    @SuppressWarnings("unchecked")
     private FileData toFileData(DBObject dbObject)
     {
 		String username = (String)dbObject.get("username");
@@ -163,7 +165,9 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 		String name = (String)dbObject.get("name");
 		String nodeType = (String)dbObject.get("nodeType");
 		int randomizer = (Integer)dbObject.get("randomizer");
-		FileData fileData = new FileData(randomizer, siteId, username, nodeId, nodePath, name, nodeType);
+		List<List<String>> parentNodeIds = (List<List<String>>)dbObject.get("nodeType");
+		FileData fileData = new FileData(randomizer, siteId, username, nodeId, nodePath, name, nodeType,
+				parentNodeIds);
 		return fileData;
     }
 
@@ -190,7 +194,7 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 
 	@Override
     public void addNode(String siteId, String username, String nodeId, String nodePath,
-            String name, String nodeType)
+            String name, String nodeType, List<List<String>> parentNodeIds)
     {
 		nodeId = normalizeNodeId(nodeId);
 
@@ -200,7 +204,7 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 		}
 		else
 		{
-			FileData fileData = new FileData(siteId, username, nodeId, nodePath, name, nodeType);
+			FileData fileData = new FileData(siteId, username, nodeId, nodePath, name, nodeType, parentNodeIds);
 	    	DBObject insert = toDBObject(fileData);
 	    	collection.insert(insert);
 		}
@@ -355,7 +359,8 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 		return count;
     }
 	
-	private PathInfo toPathInfo(DBObject dbObject)
+	@SuppressWarnings("unchecked")
+    private PathInfo toPathInfo(DBObject dbObject)
 	{
 		PathInfo pathInfo = null;
 
@@ -363,16 +368,19 @@ public class MongoNodesDataService implements NodesDataService, InitializingBean
 		{
 			String siteId = (String)dbObject.get("siteId");
 			String path = (String)dbObject.get("path");
+			String nodeType = (String)dbObject.get("nodeType");
+			String nodeId = (String)dbObject.get("nodeId");
 			Integer numChildren = (Integer)dbObject.get("numChildren");
 			Integer numChildFolders = (Integer)dbObject.get("numChildFolders");
-			pathInfo = new PathInfo(siteId, path, numChildren, numChildFolders);
+			List<List<String>> parentNodeIds = (List<List<String>>)dbObject.get("parentNodeIds");
+			pathInfo = new PathInfo(siteId, path, numChildren, numChildFolders, nodeType, nodeId, parentNodeIds);
 		}
 
 		return pathInfo;
 	}
 
 	@Override
-	public PathInfo randomFolderInSite(String siteId)
+	public PathInfo randomNodeInSite(String siteId)
 	{
     	Pattern regex = Pattern.compile("documentLibrary");
 

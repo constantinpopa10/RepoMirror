@@ -21,14 +21,15 @@ import org.alfresco.repomirror.data.PathInfo;
 public interface NodesDataService
 {
 	boolean nodeExists(String nodeId);
-	void addNode(String siteId, String username, String nodeId, String nodePath, String name, String nodeType);
+	void addNode(String siteId, String username, String nodeId, String nodePath, String name, String nodeType,
+			List<List<String>> parentNodeIds);
 	void removeNode(String nodeId);
 	void renameNode(String nodeId, String newName);
 	void moveNode(String nodeId, String fromPath, String toPath);
 	FileData randomFileInSite(String siteId);
 	FileData randomNodeUnderFolder(String path, List<String> nodeTypes);
 	String randomFolderUnderFolder(String path);
-	PathInfo randomFolderInSite(String siteId);
+	PathInfo randomNodeInSite(String siteId);
 	void updateNode(String nodeId, Integer numChildren, Integer numChildFolders,
 			Integer numSiblingsToProcess, Integer numChildrenToProcess);
 	long countNodes(String siteId);

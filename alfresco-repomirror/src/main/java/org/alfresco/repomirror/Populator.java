@@ -8,6 +8,7 @@
 package org.alfresco.repomirror;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +20,7 @@ import org.alfresco.bm.user.UserDataService;
 import org.alfresco.repomirror.dao.NodesDataService;
 import org.apache.chemistry.opencmis.client.api.CmisObject;
 import org.apache.chemistry.opencmis.client.api.Document;
+import org.apache.chemistry.opencmis.client.api.FileableCmisObject;
 import org.apache.chemistry.opencmis.client.api.Folder;
 import org.apache.chemistry.opencmis.client.api.ObjectType;
 import org.apache.chemistry.opencmis.client.api.OperationContext;
@@ -164,10 +166,13 @@ public class Populator
     	String folderName = folder.getName();
 		ObjectType folderType = folder.getType();
 		String folderNodeType = normalizeNodeType(folderType.getId());
+		List<List<String>> parentNodeIds = getParentNodeIds(session, folder);
+
 		if(!nodesDataService.nodeExists(folderNodeId))
 		{
 			logger.debug("Processing " + siteId + ", " + folderNodeId + ", " + folderNodePath);
-        	nodesDataService.addNode(siteId, null, folderNodeId, folderNodePath, folderName, folderNodeType);
+        	nodesDataService.addNode(siteId, null, folderNodeId, folderNodePath, folderName, folderNodeType,
+        			parentNodeIds);
         	count++;
 		}
 
@@ -208,6 +213,7 @@ public class Populator
 						nodeId = nodeId.substring(0, idx);
 					}
 		        	List<String> paths = document.getPaths();
+		        	List<List<String>> docParentNodeIds = getParentNodeIds(session, document);
 		        	String childNodePath = (paths != null && paths.size() > 0 ? paths.get(0) : null);
 		        	if(!childNodePath.startsWith("/Company Home"))
 		        	{
@@ -216,7 +222,7 @@ public class Populator
 					if(!nodesDataService.nodeExists(nodeId))
 					{
 						logger.debug("Processing " + siteId + ", " + nodeId + ", " + childNodePath);
-			        	nodesDataService.addNode(siteId, null, nodeId, childNodePath, name, nodeType);
+			        	nodesDataService.addNode(siteId, null, nodeId, childNodePath, name, nodeType, docParentNodeIds);
 			        	count++;
 					}
 				}
@@ -238,10 +244,32 @@ public class Populator
 		return count;
 	}
 
+	/**
+	 * Note: primary parents only.
+	 * 
+	 * @param session
+	 * @param cmisObject
+	 * @return
+	 */
+	private List<List<String>> getParentNodeIds(Session session, FileableCmisObject cmisObject)
+	{
+		List<List<String>> parentNodeIds = new LinkedList<>();
+
+		List<String> primaryParentNodeIds = new LinkedList<>();
+		parentNodeIds.add(primaryParentNodeIds);
+		for(Folder parent : cmisObject.getParents())
+		{
+			String parentNodeId = normalizeNodeId(parent.getId());
+			primaryParentNodeIds.add(parentNodeId);
+		}
+
+		return parentNodeIds;
+	}
+
 	private int populate(Session session, String siteId, String nodePath)
 	{
-		Folder documentLibary = (Folder)session.getObjectByPath(nodePath);
-		return populate(session, siteId, documentLibary);
+		Folder documentLibrary = (Folder)session.getObjectByPath(nodePath);
+		return populate(session, siteId, documentLibrary);
 	}
 	
 	private String nodePath(String nodePath)

@@ -13,11 +13,25 @@
         <constructor-arg ref="nodesDataService"></constructor-arg>
     </bean>
 
+    <bean id="activemq" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="connectionFactory" ref="messagingConnectionFactory" />
+        <property name="transacted" value="true" />
+        <property name="transactionManager" ref="messagingTransactionManager" />
+    </bean>
+
+<!-- 
+    <bean id="activemq" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="connectionFactory" ref="jmsPooledConnectionFactory" />
+        <property name="transacted" value="true" />
+        <property name="transactionManager" ref="messagingTransactionManager" />
+    </bean>
+ -->
+ 
     <bean id="camelRequiredTxn" class="org.apache.camel.spring.spi.SpringTransactionPolicy">
       <property name="transactionManager" ref="messagingTransactionManager"/>
       <property name="propagationBehaviorName" value="PROPAGATION_REQUIRED"/>
     </bean>
-    
+
    <camelContext xmlns="http://camel.apache.org/schema/spring" id="alfrescoServiceCamelContext"> 
       <contextScan/>
 

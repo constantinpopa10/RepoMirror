@@ -7,6 +7,8 @@
  */
 package org.alfresco.repomirror.data;
 
+import java.util.List;
+
 /**
  * 
  * @author sglover
@@ -21,15 +23,16 @@ public class FileData
 	private String nodePath;
 	private String name;
 	private String nodeType;
+	private List<List<String>> parentNodeIds;
 
 	public FileData(String siteId, String username, String nodeId,
-            String nodePath, String name, String nodeType)
+            String nodePath, String name, String nodeType, List<List<String>> parentNodeIds)
     {
-        this((int)(Math.random() * 1E6), siteId, username, nodeId, nodePath, name, nodeType);
+        this((int)(Math.random() * 1E6), siteId, username, nodeId, nodePath, name, nodeType, parentNodeIds);
     }
 
 	public FileData(int randomizer, String siteId, String username, String nodeId,
-            String nodePath, String name, String nodeType)
+            String nodePath, String name, String nodeType, List<List<String>> parentNodeIds)
     {
 	    super();
         this.randomizer = randomizer;
@@ -39,6 +42,7 @@ public class FileData
 	    this.nodePath = nodePath;
 	    this.name = name;
 	    this.nodeType = nodeType;
+	    this.parentNodeIds = parentNodeIds;
     }
 
 	public String getNodeType()
@@ -72,12 +76,19 @@ public class FileData
 		return name;
 	}
 
+	public List<List<String>> getParentNodeIds()
+	{
+		return parentNodeIds;
+	}
+
 	@Override
     public String toString()
     {
 	    return "FileData [randomizer=" + randomizer + ", siteId=" + siteId
 	            + ", username=" + username + ", nodeId=" + nodeId
 	            + ", nodePath=" + nodePath + ", name=" + name + ", nodeType="
-	            + nodeType + "]";
+	            + nodeType + ", parentNodeIds=" + parentNodeIds + "]";
     }
+
+
 }
