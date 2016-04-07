@@ -8,6 +8,17 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+	<distributionManagement>
+	  <repository>
+	    <id>alfresco-releases</id>
+	    <url>https://nexus.alfresco.com/nexus/content/repositories/releases</url>
+	  </repository>
+	  <snapshotRepository>
+	    <id>alfresco-snapshots</id>
+	    <url>https://nexus.alfresco.com/nexus/content/repositories/snapshots</url>
+	  </snapshotRepository>
+	</distributionManagement>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <server.version>2.0.9</server.version>
