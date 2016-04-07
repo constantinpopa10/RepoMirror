@@ -7,14 +7,20 @@
  */
 package org.alfresco.repomirror.camel.routes;
 
+import javax.jms.Message;
+
 import org.alfresco.repomirror.camel.NodeEventListener;
-import org.apache.camel.builder.RouteBuilder;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.alfresco.service.common.events.EventMetrics;
+import org.alfresco.service.common.events.RedeliveryConfig;
+import org.alfresco.service.common.events.ThreadAffinityTracking;
+import org.alfresco.service.common.events.VirtualTopicRouteBuilderImpl;
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 
 /**
  * Route builder for registering a durable subscriber for repository node events
@@ -22,61 +28,50 @@ import org.springframework.stereotype.Component;
  * @author sglover
  */
 @Component
-public class NodeEventsRouteBuilder extends RouteBuilder
+public class NodeEventsRouteBuilder extends VirtualTopicRouteBuilderImpl
 {
-    private static Log logger = LogFactory.getLog(NodeEventsRouteBuilder.class);
-
-    private NodeEventListener eventListener;
-    private String dataFormat;
-    private String sourceTopic = "activemq:topic:alfresco.events.repo.nodes";
-    private String clientId;
-    private String durableSubscriptionName;
-    private String txnManager;
-
     @Autowired
-    public NodeEventsRouteBuilder(@Qualifier("nodeEventListener") NodeEventListener eventListener,
-    		@Value("${camel.node.events.dataFormat}") String dataFormat,
-    		@Value("${camel.node.events.sourceTopic}") String sourceTopic,
-    		@Value("${camel.node.events.clientId}") String clientId,
-    		@Value("${camel.node.events.durableSubscriptionName}") String durableSubscriptionName,
-    		@Value("${camel.node.events.txnManager}") String txnManager)
+    public NodeEventsRouteBuilder(
+          @Qualifier("nodeEventListener") NodeEventListener eventListener,
+          @Value("${camel.node.events.dataFormat}") String dataFormat,
+          @Value("${camel.node.events.sourceTopic}") String sourceTopic,
+          @Value("${camel.node.events.txnManager}") String txnManagerRef,
+          @Qualifier("messagingTransactionManager") PlatformTransactionManager txnManager)
     {
-    	this.eventListener = eventListener;
-    	this.dataFormat = dataFormat;
-    	this.sourceTopic = sourceTopic;
-    	this.clientId = clientId;
-    	this.durableSubscriptionName = durableSubscriptionName;
-    	this.txnManager = txnManager;
+        super(eventListener, dataFormat, txnManagerRef, sourceTopic + " -> bean", sourceTopic, getEventMetrics(), -1, -1,
+                1000, ThreadAffinityTracking.ExceptionOnMismatch, null, txnManager, NodeEventsRouteBuilder.getRedeliveryConfig(),
+                "");
     }
 
-    private String getSourceTopic()
+    private static RedeliveryConfig getRedeliveryConfig()
     {
-        StringBuilder sb = new StringBuilder(sourceTopic);
-
-        sb.append("?");
-        sb.append("clientId=");
-        sb.append(clientId);
-        sb.append("&durableSubscriptionName=");
-        sb.append(durableSubscriptionName);
-
-        return sb.toString();
+        RedeliveryConfig redeliveryConfig = new RedeliveryConfig(-1, 2.0);
+        return redeliveryConfig;
     }
 
-    @Override
-    public void configure()
+    private static Processor getExceptionProcessor()
     {
-        if (logger.isDebugEnabled())
+        Processor processor = new Processor()
         {
-            logger.debug("Subscription service node events routes config: ");
-            logger.debug("sourceTopic is "+sourceTopic);
-            logger.debug("targetbean is "+eventListener);
-        }
+            @Override
+            public void process(Exchange exchange) throws Exception
+            {
+                // TODO Auto-generated method stub
+                
+            }
+        };
+        return processor;
+    }
 
-        from(getSourceTopic())
-        .routeId("topic:alfresco.repo.events.nodes -> bean")
-        .transacted().ref(txnManager)
-        .unmarshal(dataFormat)
-        .bean(eventListener, "onMessage")
-        .end();
+    private static EventMetrics getEventMetrics()
+    {
+        EventMetrics metrics = new EventMetrics()
+        {
+            @Override
+            public void onEvent(Message jmsMessage, Object event)
+            {
+            }
+        };
+        return metrics;
     }
 }

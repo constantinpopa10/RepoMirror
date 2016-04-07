@@ -9,40 +9,59 @@
     <!-- Any RouteBuilder in this package will be fired up -->
     <context:component-scan base-package="org.alfresco.repomirror.camel.routes"/>
 
+    <bean id="messagingObjectMapper" class="org.gytheio.messaging.jackson.ObjectMapperFactory" 
+        factory-method="createInstance" />
+
+    <bean id="defaultDataFormatDef" class="org.apache.camel.model.DataFormatDefinition">
+        <constructor-arg ref="defaultDataFormat" />
+    </bean>
+
+    <bean id="defaultDataFormat" class="org.apache.camel.component.jackson.JacksonDataFormat">
+        <constructor-arg ref="messagingObjectMapper" />
+        <constructor-arg value="java.lang.Object" />
+    </bean>
+
+    <bean id="activeMQState" class="org.alfresco.service.common.messaging.ActiveMQState">
+    </bean>
+
+    <bean id="repoMirrorMessagingConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="${messaging.broker.url}" />
+        <property name="transportListener" ref="activeMQState"/>
+        <property name="userName" value="${messaging.username}"/>
+        <property name="password" value="${messaging.password}"/>
+    </bean>
+
+    <bean id="repoMirrorMessagingPooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory"
+      init-method="start" destroy-method="stop" >
+        <property name="maxConnections" value="${messaging.pool.maxConnections}" />
+        <property name="maximumActiveSessionPerConnection" value="${messaging.pool.maxActiveSessionsPerConnection}" />
+        <property name="connectionFactory" ref="repoMirrorMessagingConnectionFactory" />
+    </bean> 
+
+    <bean id="repoMirrorMessagingTransactionManager" class="org.springframework.jms.connection.JmsTransactionManager">
+        <property name="connectionFactory" ref="repoMirrorMessagingPooledConnectionFactory"/>
+    </bean>
+
+    <bean id="repoMirrorRequiredTxn" class="org.apache.camel.spring.spi.SpringTransactionPolicy">
+      <property name="transactionManager" ref="repoMirrorMessagingTransactionManager"/>
+      <property name="propagationBehaviorName" value="PROPAGATION_REQUIRED"/>
+    </bean>
+
+    <bean id="repoMirrorActivemq" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="connectionFactory" ref="repoMirrorMessagingPooledConnectionFactory" />
+        <property name="transacted" value="true" />
+        <property name="transactionManager" ref="repoMirrorMessagingTransactionManager" />
+        <property name="cacheLevelName" value="CACHE_CONSUMER" />
+    </bean>
+
     <bean id="nodeEventListener" class="org.alfresco.repomirror.camel.NodeEventListener">
         <constructor-arg ref="nodesDataService"></constructor-arg>
     </bean>
 
-    <bean id="activemq" class="org.apache.activemq.camel.component.ActiveMQComponent">
-        <property name="connectionFactory" ref="messagingConnectionFactory" />
-        <property name="transacted" value="true" />
-        <property name="transactionManager" ref="messagingTransactionManager" />
-    </bean>
-
-<!-- 
-    <bean id="activemq" class="org.apache.activemq.camel.component.ActiveMQComponent">
-        <property name="connectionFactory" ref="jmsPooledConnectionFactory" />
-        <property name="transacted" value="true" />
-        <property name="transactionManager" ref="messagingTransactionManager" />
-    </bean>
- -->
- 
-    <bean id="camelRequiredTxn" class="org.apache.camel.spring.spi.SpringTransactionPolicy">
-      <property name="transactionManager" ref="messagingTransactionManager"/>
-      <property name="propagationBehaviorName" value="PROPAGATION_REQUIRED"/>
-    </bean>
-
-   <camelContext xmlns="http://camel.apache.org/schema/spring" id="alfrescoServiceCamelContext"> 
+   <camelContext xmlns="http://camel.apache.org/schema/spring" id="repoMirrorCamelContext"> 
       <contextScan/>
 
       <jmxAgent id="agent" disabled="true"/>
-<!-- 
-      <route>
-         <from uri="amqp:topic:alfresco.events.nodes"/>
-         <unmarshal><custom ref="defaultDataFormat"/></unmarshal>
-         <bean ref="nodeEventListener" method="onMessage"/>
-      </route>
- -->
    </camelContext>
 
 </beans>
