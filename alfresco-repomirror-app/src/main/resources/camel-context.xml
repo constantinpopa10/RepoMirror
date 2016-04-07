@@ -38,6 +38,17 @@
         <property name="connectionFactory" ref="repoMirrorMessagingConnectionFactory" />
     </bean> 
 
+    <bean id="messagingExceptionProcessor" class="org.gytheio.health.camel.ExceptionProcessor">
+        <property name="handler" ref="componentUnavailableExceptionHandler" />
+    </bean>
+
+   <bean id="componentUnavailableExceptionHandler" class="org.gytheio.health.ComponentUnavailableExceptionHandler">
+        <property name="policies">
+            <map>
+            </map>
+        </property>
+    </bean>
+
     <bean id="repoMirrorMessagingTransactionManager" class="org.springframework.jms.connection.JmsTransactionManager">
         <property name="connectionFactory" ref="repoMirrorMessagingPooledConnectionFactory"/>
     </bean>
@@ -47,7 +58,7 @@
       <property name="propagationBehaviorName" value="PROPAGATION_REQUIRED"/>
     </bean>
 
-    <bean id="repoMirrorActivemq" class="org.apache.activemq.camel.component.ActiveMQComponent">
+    <bean id="activeMQ" class="org.apache.activemq.camel.component.ActiveMQComponent">
         <property name="connectionFactory" ref="repoMirrorMessagingPooledConnectionFactory" />
         <property name="transacted" value="true" />
         <property name="transactionManager" ref="repoMirrorMessagingTransactionManager" />

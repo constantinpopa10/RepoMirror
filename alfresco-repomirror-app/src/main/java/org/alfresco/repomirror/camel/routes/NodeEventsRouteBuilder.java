@@ -14,7 +14,6 @@ import org.alfresco.service.common.events.EventMetrics;
 import org.alfresco.service.common.events.RedeliveryConfig;
 import org.alfresco.service.common.events.ThreadAffinityTracking;
 import org.alfresco.service.common.events.VirtualTopicRouteBuilderImpl;
-import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -36,31 +35,19 @@ public class NodeEventsRouteBuilder extends VirtualTopicRouteBuilderImpl
           @Value("${camel.node.events.dataFormat}") String dataFormat,
           @Value("${camel.node.events.sourceTopic}") String sourceTopic,
           @Value("${camel.node.events.txnManager}") String txnManagerRef,
-          @Qualifier("messagingTransactionManager") PlatformTransactionManager txnManager)
+          @Qualifier("repoMirrorMessagingTransactionManager") PlatformTransactionManager txnManager,
+          @Value("${messaging.events.repo.node.deadletterUri}") String deadLetterUri,
+          @Qualifier("messagingExceptionProcessor") Processor messagingExceptionProcessor)
     {
         super(eventListener, dataFormat, txnManagerRef, sourceTopic + " -> bean", sourceTopic, getEventMetrics(), -1, -1,
-                1000, ThreadAffinityTracking.ExceptionOnMismatch, null, txnManager, NodeEventsRouteBuilder.getRedeliveryConfig(),
-                "");
+                1000, ThreadAffinityTracking.ExceptionOnMismatch, messagingExceptionProcessor, txnManager,
+                NodeEventsRouteBuilder.getRedeliveryConfig(), deadLetterUri);
     }
 
     private static RedeliveryConfig getRedeliveryConfig()
     {
         RedeliveryConfig redeliveryConfig = new RedeliveryConfig(-1, 2.0);
         return redeliveryConfig;
-    }
-
-    private static Processor getExceptionProcessor()
-    {
-        Processor processor = new Processor()
-        {
-            @Override
-            public void process(Exchange exchange) throws Exception
-            {
-                // TODO Auto-generated method stub
-                
-            }
-        };
-        return processor;
     }
 
     private static EventMetrics getEventMetrics()

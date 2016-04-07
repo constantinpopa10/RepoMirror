@@ -11,9 +11,6 @@
     <!--         -->
     <!-- General -->
     <!--         -->
-<!-- 
-    <context:property-placeholder location="classpath:app.properties"/>
- -->
 
     <!-- Application startup properties -->
     <bean id="appPlaceholderConfigurer" class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer" >
@@ -21,21 +18,10 @@
         <property name="locations">
             <list>
                 <value>classpath*:app.properties</value>
-                <!-- 
-                <value>classpath*:config/startup/mongo.properties</value>
-                <value>classpath*:config/startup/*.properties</value>
-                 -->
             </list>
         </property>
     </bean>
 
-    <!--  
-    <bean id="placeholderConfigurer" class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer" >
-        <property name="ignoreUnresolvablePlaceholders" value="false"/>
-    </bean>
--->
-
-    <import resource="classpath:services-common-messaging-context.xml"/>
     <import resource="classpath:camel-context.xml"/>
 
     <!--           -->
@@ -43,9 +29,10 @@
     <!--           -->
 
     <bean id="mongoDbFactory" class="org.alfresco.service.common.mongo.MongoDbFactory">
-        <property name="mongoURI" value="${mongo.mongoURI}" />
-        <property name="dbName" value="${mongo.dbName}" />
-        <property name="enabled" value="${mongo.enabled}"/>
+        <constructor-arg name="enabled" value="true" />
+        <constructor-arg name="mongoURI" value="${mongo.mongoURI}" />
+        <constructor-arg name="dbName" value="${mongo.dbName}"/>
+        <constructor-arg name="embedded" value="false" />
     </bean>
 
     <bean id="mongoDB" factory-bean="mongoDbFactory" factory-method="createInstance" />
